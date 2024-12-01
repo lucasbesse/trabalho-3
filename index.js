@@ -1,63 +1,143 @@
-const albums = Array.from({ length: 105 }, (_, i) => ({
-  id: i + 1,
-  title: `Álbum ${ i + 1}`,
-  artist: `Artista ${ i + 1 }`,
-  imageUrl: `https://via.placeholder.com/300x200.png?text=Álbum+${i + 1}`,
-  description: `Descrição do álbum ${ i + 1 }`
-  }));
+const API_URL = 'https://ucsdiscosapi.azurewebsites.net/Discos';
+const API_KEY = '8175fA5f6098c5301022f475da32a2aa';
 
-let currentIndex = 0;
-const itemsPerLoad = 12;
-const additionalItems = 4;
+let tokenApiUCS = '';
+let number = 1;
+let size = 12;
 
-function loadImages() {
-  const gallery = document.getElementById('imageGallery');
-  for (let i = 0; i < itemsPerLoad; i++) {
-    const album = albums[(currentIndex + i) % albums.length];  // Circular
-    const col = document.createElement('div');
-    col.classList.add('col-12', 'col-md-6', 'image-col');
-    col.innerHTML = `
-          <div class="image-container">
-              <img src="${album.imageUrl}" alt="${album.title}" class="image-item" data-id="${album.id}">
+let recordList = [];
+
+const auth = () => {
+  const url = `${API_URL}/autenticar`;
+  $.ajax({
+    url,
+    type: 'POST',
+    headers: {
+      'ChaveApi': API_KEY
+    },
+    success: (token) => {
+      tokenApiUCS = token;
+      getRecords(false);
+    },
+  });
+};
+
+const getRecords = (isScrollEvent) => {
+  const loading = $('.loading');
+  const content = $('.image-gallery');
+  // const errorMessage = $('.error-message');
+  if (!isScrollEvent) {
+    loading.show();
+    content.hide();
+  }
+  // errorMessage.hide();
+
+  const url = `${API_URL}/records`;
+  $.ajax({
+    url,
+    type: 'GET',
+    headers: {
+      "TokenApiUCS": tokenApiUCS,
+    },
+    data: {
+      numeroInicio: number,
+      quantidade: size,
+    },
+    success: (records) => {
+      isLoading = false;
+      records.forEach(record => {
+        recordList.push(record);
+        const recordTemplate = `
+          <div class="image-container" id="image-container" data-record-id="${record.id}">
+            <img src="data:image/png;base64, ${record.imagemEmBase64}" alt="${record.id}" class="image-item" data-id="${record.id}">
           </div>
-      `;
-    gallery.appendChild(col);
-  }
-  currentIndex = (currentIndex + itemsPerLoad) % albums.length;
-}
+        `;
+        content.append(recordTemplate);
+      });
 
-function showModal(id) {
-  const album = albums.find(a => a.id === id);
-  if (album) {
-    document.getElementById('modalImage').src = album.imageUrl;
-    document.getElementById('modalTitle').textContent = album.title;
-    document.getElementById('modalDescription').textContent = album.description;
-    document.getElementById('modalArtist').textContent = `Artista: ${ album.artist }`;
-    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-    modal.show();
-  }
-}
+      monitoryOpenRecordEvent();
+
+      if (!isScrollEvent) {
+        loading.hide();
+        content.show();
+        content.css('display', 'flex');
+      }
+    },
+    error: () => {
+      isLoading = false;
+      // TODO Exibe mensagem de erro
+      // errorMessage.show();
+    },
+  });
+};
+
+const getRecord = (id) => {
+  const url = `${API_URL}/record`;
+  $.ajax({
+    url,
+    type: 'GET',
+    headers: {
+      "TokenApiUCS": tokenApiUCS,
+    },
+    data: {
+      numero: id,
+    },
+    success: (record) => {
+      // TODO loading
+      const modalBody = $('.modal-body');
+      const modalTemplate = `
+        <img id="modalImage" src="data:image/png;base64, ${record.imagemEmBase64}" alt="Imagem do álbum" class="img-fluid">
+        <p id="modalTitle">${record.descricaoPrimaria}</p>
+        <p id="modalDescription">${record.descricaoSecundaria}</p>
+        <p id="modalArtist"></p>
+      `;
+
+      modalBody.empty();
+      modalBody.append(modalTemplate);
+
+      const modal = new bootstrap.Modal(document.getElementById('modal'));
+      modal.show();
+    },
+    error: () => {
+      // TODO Exibe mensagem de erro
+    },
+  });
+};
+
+auth();
+
+const monitoryOpenRecordEvent = () => {
+  $('#imageGallery').on('click', '.image-container', function () {
+    const record = $(this);
+    const recordId = record.data('record-id');
+    getRecord(recordId);
+  });
+};
 
 let isLoading = false;
-window.addEventListener('scroll', () => {
-  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 50 && !isLoading) {
-    isLoading = true;
-    document.getElementById('loading').style.display = 'block';
-    setTimeout(() => {
-      loadImages();
-      document.getElementById('loading').style.display = 'none';
-      isLoading = false;
-    }, 1000);
-  }
-});
+// window.addEventListener('scroll', () => {
+//   if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 50 && !isLoading) {
+//     isLoading = true;
+//     setTimeout(() => {
+//       number = recordList.length;
+//       size = 4;
+//       getRecords();
+//       isLoading = false;
+//     }, 500);
+//   }
+// });
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadImages();
-
-  document.getElementById('imageGallery').addEventListener('click', (e) => {
-    if (e.target.tagName === 'IMG') {
-      const albumId = parseInt(e.target.getAttribute('data-id'));
-      showModal(albumId);
+$(window).on('scroll', function () {
+  setTimeout(() => {
+    const scrollTop = $(window).scrollTop();
+    const windowHeight = $(window).height();
+    const documentHeight = $(document).height();
+  
+    if (scrollTop + windowHeight >= documentHeight - 1 && !isLoading) {
+      number = recordList.length;
+      size = 4;
+      isLoading = true;
+      getRecords();
     }
-  });
-});
+  }, 2000);
+})

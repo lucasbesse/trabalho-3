@@ -7,13 +7,12 @@
 .image-item {
   width: 100%;
   height: auto;
-  border-radius: 8px;
   cursor: pointer;
   transition: all ease 0.2s;
 }
 
 .image-item:hover {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 .modal-body img {
@@ -33,6 +32,12 @@
 
 .container {
   margin-top: 20px;
+}
+
+.loading,
+.error-message,
+.image-gallery {
+  display: none;
 }
 
 @media (max-width: 768px) {
