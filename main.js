@@ -4,6 +4,7 @@ const API_KEY = '8175fA5f6098c5301022f475da32a2aa';
 let tokenApiUCS = '';
 let number = 1;
 let size = 12;
+let maxItems = 106;
 
 let recordList = [];
 let currentScrollPosition = 0;
@@ -158,6 +159,27 @@ const showError = () => {
   }, 5000);
 };
 
+const getPageOptions = () => {
+  const firstSize = 12;
+  const defaultSize = 4; // Tamanho padrão do lote de carregamento
+
+  if (number <= firstSize) {
+    number = firstSize - defaultSize + 1;
+  }
+
+  // // Ajustar o número inicial ao ciclo (1 a maxItems)
+  // number = number % maxItems || 1;
+
+  // Determinar o tamanho do lote
+  // Determinar quanto falta para completar o ciclo
+  const remaining = maxItems - (number + size);
+  console.log(remaining)
+  size = Math.min(remaining, defaultSize);
+
+  // Atualizar o número inicial para o próximo lote
+  number = (number + size) % maxItems || 1;
+}
+
 $(window).on('scroll', function () {
   setTimeout(() => {
     const scrollTop = $(window).scrollTop();
@@ -168,8 +190,8 @@ $(window).on('scroll', function () {
       currentScrollPosition = $(window).scrollTop();
       isLoading = true;
 
-      number = recordList.length + 1;
-      size = 4;
+      getPageOptions();
+      
       getRecords(true);
     }
   }, 2000);
