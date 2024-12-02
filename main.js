@@ -32,9 +32,10 @@ const getRecords = (isScrollEvent) => {
   const loading = $('.loading');
   const content = $('.image-gallery');
   if (!isScrollEvent) {
-    loading.show();
     content.hide();
   }
+
+  loading.show();
 
   const url = `${API_URL}/records`;
   $.ajax({
@@ -62,9 +63,9 @@ const getRecords = (isScrollEvent) => {
       });
 
       monitoryOpenRecordEvent();
+      loading.hide();
 
       if (!isScrollEvent) {
-        loading.hide();
         content.show();
         content.css('display', 'flex');
       } else {
